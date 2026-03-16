@@ -1,22 +1,22 @@
 package events;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import akka.actor.ActorRef;
 import actions.PlayCardAction;
 import commands.BasicCommands;
-import commands.BasicCommands;
 import structures.GameState;
 import structures.GameUnit;
 import structures.basic.Card;
 import structures.Pos;
-import structures.GameUnit;
-import structures.basic.Card;
 import structures.basic.Tile;
 import systems.GameEngine;
+import systems.CombatSystem;
 
 public class TileClicked implements EventProcessor {
 
@@ -60,7 +60,10 @@ public class TileClicked implements EventProcessor {
                     && isAttackHighlighted(gameState, clickedTile)
                     && !selectedUnit.hasAttacked()) {
 
-                performAttack(out, gameState, selectedUnit, clickedUnit);
+                CombatSystem.executeAttack(out, gameState, selectedUnit, clickedUnit);
+                selectedUnit.setHasAttacked(true);
+                selectedUnit.setHasMoved(true);
+
 
                 clearHighlights(out, gameState);
                 gameState.setSelectedUnit(null);
@@ -130,9 +133,11 @@ public class TileClicked implements EventProcessor {
 
         int player = gameState.getCurrentTurn();
         int handPos = gameState.getSelectedCardHandPosition() - 1;
+        String cardName = card.getCardname();
+        GameUnit targetBefore = gameState.getUnitOnTile(x, y);
+        Set<String> swarmEmptyTilesBefore = captureAdjacentEmptyTiles(gameState, player, cardName);
 
-        PlayCardAction action =
-                new PlayCardAction(player, handPos, new Pos(x, y));
+        PlayCardAction action = new PlayCardAction(player, handPos, new Pos(x, y));
 
         GameEngine.apply(gameState, action);
 
@@ -141,10 +146,9 @@ public class TileClicked implements EventProcessor {
         if (card.getIsCreature() && unit != null) {
 
             Tile tile = gameState.getTile(x, y);
-
-            BasicCommands.drawUnit(out, unit.getUnit(), tile);
-            BasicCommands.setUnitAttack(out, unit.getUnit(), unit.getAttack());
-            BasicCommands.setUnitHealth(out, unit.getUnit(), unit.getHealth());
+            drawUnitWithStats(out, tile, unit);
+        } else {
+            refreshSpellUI(out, gameState, cardName, x, y, targetBefore, swarmEmptyTilesBefore);
         }
 
         refreshMana(out, gameState);
@@ -154,6 +158,119 @@ public class TileClicked implements EventProcessor {
         gameState.setSelectedCardHandPosition(-1);
 
         clearHighlights(out, gameState);
+    }
+
+    private void refreshSpellUI(ActorRef out,
+                                GameState gameState,
+                                String cardName,
+                                int x,
+                                int y,
+                                GameUnit targetBefore,
+                                Set<String> swarmEmptyTilesBefore) {
+
+        GameUnit targetAfter = gameState.getUnitOnTile(x, y);
+
+        if ("True Strike".equals(cardName) || "Truestrike".equals(cardName)) {
+            if (targetAfter == null) {
+                if (targetBefore != null) {
+                    BasicCommands.deleteUnit(out, targetBefore.getUnit());
+                }
+            } else {
+                BasicCommands.setUnitHealth(out, targetAfter.getUnit(), targetAfter.getHealth());
+            }
+            return;
+        }
+
+        if ("Sundrop Elixir".equals(cardName)) {
+            if (targetAfter != null) {
+                BasicCommands.setUnitHealth(out, targetAfter.getUnit(), targetAfter.getHealth());
+            }
+            return;
+        }
+
+        if ("Dark Terminus".equals(cardName)) {
+            if (targetBefore != null) {
+                BasicCommands.deleteUnit(out, targetBefore.getUnit());
+            }
+
+            if (targetAfter != null) {
+                drawUnitWithStats(out, gameState.getTile(x, y), targetAfter);
+            }
+            return;
+        }
+
+        if ("Wraithling Swarm".equals(cardName)) {
+            drawNewAdjacentSummons(out, gameState, playerAvatar(gameState, gameState.getCurrentTurn()), swarmEmptyTilesBefore);
+        }
+    }
+
+    private Set<String> captureAdjacentEmptyTiles(GameState gameState, int playerId, String cardName) {
+        Set<String> emptyTiles = new HashSet<>();
+
+        if (!"Wraithling Swarm".equals(cardName)) {
+            return emptyTiles;
+        }
+
+        GameUnit avatar = playerAvatar(gameState, playerId);
+        if (avatar == null) return emptyTiles;
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) continue;
+
+                int nx = avatar.getTileX() + dx;
+                int ny = avatar.getTileY() + dy;
+
+                if (gameState.getTile(nx, ny) == null) continue;
+                if (gameState.getUnitOnTile(nx, ny) != null) continue;
+
+                emptyTiles.add(tileKey(nx, ny));
+            }
+        }
+
+        return emptyTiles;
+    }
+
+    private void drawNewAdjacentSummons(ActorRef out,
+                                        GameState gameState,
+                                        GameUnit avatar,
+                                        Set<String> emptyTilesBefore) {
+        if (avatar == null) return;
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) continue;
+
+                int nx = avatar.getTileX() + dx;
+                int ny = avatar.getTileY() + dy;
+
+                if (!emptyTilesBefore.contains(tileKey(nx, ny))) continue;
+
+                GameUnit summonedUnit = gameState.getUnitOnTile(nx, ny);
+                Tile tile = gameState.getTile(nx, ny);
+
+                if (summonedUnit != null && tile != null) {
+                    drawUnitWithStats(out, tile, summonedUnit);
+                }
+            }
+        }
+    }
+
+    private GameUnit playerAvatar(GameState gameState, int playerId) {
+        return (playerId == 1) ? gameState.getPlayer1Avatar() : gameState.getPlayer2Avatar();
+    }
+
+    private String tileKey(int x, int y) {
+        return x + ":" + y;
+    }
+
+    private void drawUnitWithStats(ActorRef out, Tile tile, GameUnit unit) {
+        BasicCommands.drawUnit(out, unit.getUnit(), tile);
+        try { Thread.sleep(30); } catch (InterruptedException e) { e.printStackTrace(); }
+        BasicCommands.setUnitAttack(out, unit.getUnit(), unit.getAttack());
+        try { Thread.sleep(20); } catch (InterruptedException e) { e.printStackTrace(); }
+        BasicCommands.setUnitHealth(out, unit.getUnit(), unit.getHealth());
+        try { Thread.sleep(20); } catch (InterruptedException e) { e.printStackTrace(); }
     }
 
     // =====================================
@@ -251,26 +368,6 @@ public class TileClicked implements EventProcessor {
         }
 
         return list;
-    }
-
-    private void performAttack(ActorRef out,
-                               GameState gameState,
-                               GameUnit attacker,
-                               GameUnit defender){
-
-        defender.takeDamage(attacker.getAttack());
-
-        if(defender.isDead()){
-            gameState.removeUnit(defender.getTileX(),defender.getTileY());
-            BasicCommands.deleteUnit(out, defender.getUnit());
-        }else{
-            BasicCommands.setUnitHealth(out,
-                    defender.getUnit(),
-                    defender.getHealth());
-        }
-
-        attacker.setHasAttacked(true);
-        attacker.setHasMoved(true);
     }
 
     // =====================================

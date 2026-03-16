@@ -24,32 +24,30 @@ public final class CombatSystem {
 
         try { Thread.sleep(atkDuration + 100); } catch (InterruptedException e) { e.printStackTrace(); }
 
-        // Apply damage to defender
-        defender.takeDamage(attacker.getAttack());
-        updateHealthUI(out, state, defender);
-
-        if (defender.isDead()) {
-            BasicCommands.playUnitAnimation(out, attacker.getUnit(), UnitAnimationType.idle);
-            try { Thread.sleep(50); } catch (InterruptedException e) { e.printStackTrace(); }
-            handleDeath(out, state, defender);
-            return;
-        }
-
-        // Counter-attack: defender hits back
         int counterDuration = BasicCommands.playUnitAnimation(out, defender.getUnit(), UnitAnimationType.attack);
         BasicCommands.playUnitAnimation(out, attacker.getUnit(), UnitAnimationType.hit);
-
         try { Thread.sleep(counterDuration + 100); } catch (InterruptedException e) { e.printStackTrace(); }
 
-        attacker.takeDamage(defender.getAttack());
+        int damageToDefender = attacker.getAttack();
+        int damageToAttacker = defender.getAttack();
+        defender.takeDamage(damageToDefender);
+        attacker.takeDamage(damageToAttacker);
+        updateHealthUI(out, state, defender);
         updateHealthUI(out, state, attacker);
+
 
         // Return both to idle
         BasicCommands.playUnitAnimation(out, attacker.getUnit(), UnitAnimationType.idle);
         BasicCommands.playUnitAnimation(out, defender.getUnit(), UnitAnimationType.idle);
         try { Thread.sleep(100); } catch (InterruptedException e) { e.printStackTrace(); }
 
-        if (attacker.isDead()) {
+        boolean defenderDead = defender.isDead();
+        boolean attackerDead = attacker.isDead();
+
+        if (defenderDead) {
+            handleDeath(out, state, defender);
+        }
+        if (attackerDead) {
             handleDeath(out, state, attacker);
         }
     }
