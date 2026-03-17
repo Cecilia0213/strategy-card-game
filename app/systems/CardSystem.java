@@ -96,7 +96,33 @@ public final class CardSystem {
             GameUnit gameUnit = new GameUnit(basicUnit, playerId, attack, health, false);
             gameUnit.setCardName(card.getCardname());
 
+            if ("Saberspine Tiger".equals(card.getCardname())) {
+                gameUnit.setHasMoved(false);
+                gameUnit.setHasAttacked(false);
+            } else {
+                gameUnit.setHasMoved(true);
+                gameUnit.setHasAttacked(true);
+            }
+
             state.placeUnit(x, y, gameUnit);
+            // Sprint 4: Connect register() - Register trigger-type effect
+            String cardName = card.getCardname();
+            if ("Bad Omen".equals(cardName)) {
+                state.getEffectResolver().register(abilities.TriggerType.ON_UNIT_DIED, new abilities.BadOmenEffect(), gameUnit);
+            } else if ("Shadow Watcher".equals(cardName)) {
+                state.getEffectResolver().register(abilities.TriggerType.ON_UNIT_DIED, new abilities.ShadowWatcherEffect(), gameUnit);
+            }else if ("Bloodmoon Priestess".equals(cardName)) {
+                state.getEffectResolver().register(abilities.TriggerType.ON_UNIT_DIED, new abilities.BloodmoonPriestessEffect(), gameUnit);
+            } else if ("Shadowdancer".equals(cardName)) {
+                state.getEffectResolver().register(abilities.TriggerType.ON_UNIT_DIED, new abilities.ShadowdancerEffect(), gameUnit);
+            }
+            else if ("Gloom Chaser".equals(cardName)) {
+                state.getEffectResolver().register(abilities.TriggerType.ON_SUMMON, new abilities.GloomChaserEffect(), gameUnit);
+            } else if ("Nightsorrow Assassin".equals(cardName)) {
+                state.getEffectResolver().register(abilities.TriggerType.ON_SUMMON, new abilities.NightsorrowAssassinEffect(), gameUnit);
+            } else if ("Silverguard Squire".equals(cardName)) {
+                state.getEffectResolver().register(abilities.TriggerType.ON_SUMMON, new abilities.SilverguardSquireEffect(), gameUnit);
+            }
             return true;
         } catch (Exception e) {
             return false;
@@ -149,6 +175,9 @@ public final class CardSystem {
             );
 
             GameUnit newUnit = new GameUnit(wraith, playerId, 1, 1, false);
+            // Prevent the minions summoned by spells from attacking immediately
+            newUnit.setHasMoved(true);
+            newUnit.setHasAttacked(true);
 
             state.placeUnit(x, y, newUnit);
 
@@ -189,6 +218,10 @@ public final class CardSystem {
                     );
 
                     GameUnit newUnit = new GameUnit(wraith, playerId, 1, 1, false);
+
+                    // Prevent the summoned minions by magic from attacking immediately
+                    newUnit.setHasMoved(true);
+                    newUnit.setHasAttacked(true);
 
                     state.placeUnit(x,y,newUnit);
 
