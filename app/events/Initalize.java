@@ -148,24 +148,6 @@ public class Initalize implements EventProcessor{
         BasicCommands.setUnitHealth(out, p2AvatarUnit, 20);
         try { Thread.sleep(50); } catch (InterruptedException e) { e.printStackTrace(); }
         
-        // create a test enemy non-avatar unit
-        int enemyUnitId = gameState.getAndIncrementUnitId();
-        Unit enemyUnit = BasicObjectBuilders.loadUnit(
-                "conf/gameconfs/units/rock_pulveriser.json",
-                enemyUnitId,
-                Unit.class
-            );
-            Tile enemyTile = gameState.getTile(3, 3);
-            enemyUnit.setPositionByTile(enemyTile);
-            GameUnit enemyGameUnit = new GameUnit(enemyUnit, 2, 1, 4, false);
-            gameState.placeUnit(3, 3, enemyGameUnit);
-            BasicCommands.drawUnit(out, enemyUnit, enemyTile);
-            try { Thread.sleep(100); } catch (InterruptedException e) { e.printStackTrace(); }
-            BasicCommands.setUnitAttack(out, enemyUnit, 1);
-            try { Thread.sleep(50); } catch (InterruptedException e) { e.printStackTrace(); }
-            BasicCommands.setUnitHealth(out, enemyUnit, 4);
-            try { Thread.sleep(50); } catch (InterruptedException e) { e.printStackTrace(); }
-
         List<Card> p1Deck = OrderedCardLoader.getPlayer1Cards(2);
         gameState.setPlayer1Deck(p1Deck);
 
