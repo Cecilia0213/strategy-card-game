@@ -25,7 +25,7 @@ public class CardClicked implements EventProcessor {
         if (gameState.isGameOver()) return;
         if (gameState.isUnitMoving()) return;
 
-        int handPosition = message.get("position").asInt(); // 1-based
+        int handPosition = message.get("position").asInt();
         int handIndex = handPosition - 1;
 
         List<Card> hand = getCurrentHand(gameState);
@@ -39,7 +39,6 @@ public class CardClicked implements EventProcessor {
             return;
         }
 
-        // clear previous selection/highlights
         clearHighlights(out, gameState);
         clearPreviousCardHighlight(out, gameState);
 
@@ -47,11 +46,10 @@ public class CardClicked implements EventProcessor {
         gameState.setSelectedCard(card);
         gameState.setSelectedCardHandPosition(handPosition);
 
-        // highlight selected card in hand
         BasicCommands.drawCard(out, card, handPosition, 1);
 
         if (card.getIsCreature()) {
-            List<Tile> summonTiles = findValidSummonTiles(gameState, gameState.getCurrentTurn());
+            List<Tile> summonTiles = findValidSummonTiles(gameState, gameState.getCurrentTurn(), card);
             gameState.setHighlightedTiles(summonTiles);
             for (Tile tile : summonTiles) {
                 BasicCommands.drawTile(out, tile, 1);
@@ -99,26 +97,28 @@ public class CardClicked implements EventProcessor {
         gameState.getAttackHighlightedTiles().clear();
     }
 
-    private static List<Tile> findValidSummonTiles(GameState gameState, int owner) {
+    private static List<Tile> findValidSummonTiles(GameState gameState, int owner, Card card) {
+        String name = card.getCardname();
+        if ("Young Flamewing".equals(name) || "Ironcliff Guardian".equals(name)) {
+            return findAllEmptyTiles(gameState);
+        }
+
         List<Tile> valid = new ArrayList<>();
 
         for (int x = 1; x <= 9; x++) {
             for (int y = 1; y <= 5; y++) {
-
                 GameUnit unit = gameState.getUnitOnTile(x, y);
                 if (unit == null) continue;
                 if (unit.getOwner() != owner) continue;
 
                 for (int dx = -1; dx <= 1; dx++) {
                     for (int dy = -1; dy <= 1; dy++) {
-
                         if (dx == 0 && dy == 0) continue;
 
                         int nx = x + dx;
                         int ny = y + dy;
 
                         Tile tile = gameState.getTile(nx, ny);
-
                         if (tile == null) continue;
                         if (gameState.getUnitOnTile(nx, ny) != null) continue;
 
@@ -143,11 +143,16 @@ public class CardClicked implements EventProcessor {
                 if (unit == null) continue;
                 if (unit.isAvatar()) continue;
 
-                if (("True Strike".equals(name) || "Truestrike".equals(name)) && unit.getOwner() != playerId) {
+                if (("True Strike".equals(name) || "Truestrike".equals(name) || "Beamshock".equals(name))
+                        && unit.getOwner() != playerId) {
                     valid.add(gameState.getTile(x, y));
                 }
 
                 if ("Sundrop Elixir".equals(name) && unit.getOwner() == playerId) {
+                    valid.add(gameState.getTile(x, y));
+                }
+
+                if ("Dark Terminus".equals(name) && unit.getOwner() != playerId) {
                     valid.add(gameState.getTile(x, y));
                 }
             }
@@ -156,8 +161,23 @@ public class CardClicked implements EventProcessor {
         return valid;
     }
 
+    private static List<Tile> findAllEmptyTiles(GameState gameState) {
+        List<Tile> result = new ArrayList<>();
+        for (int x = 1; x <= 9; x++) {
+            for (int y = 1; y <= 5; y++) {
+                if (gameState.getUnitOnTile(x, y) != null) continue;
+                Tile tile = gameState.getTile(x, y);
+                if (tile != null) result.add(tile);
+            }
+        }
+        return result;
+    }
+
     private static boolean isEnemyTargetSpell(Card card) {
         String name = card.getCardname();
-        return "True Strike".equals(name) || "Truestrike".equals(name);
+        return "True Strike".equals(name)
+                || "Truestrike".equals(name)
+                || "Beamshock".equals(name)
+                || "Dark Terminus".equals(name);
     }
 }
