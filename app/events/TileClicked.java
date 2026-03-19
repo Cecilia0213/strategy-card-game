@@ -283,12 +283,12 @@ public class TileClicked implements EventProcessor {
                                   GameUnit unit) {
 
         List<Tile> moves = unit.hasMoved()
-        ? new ArrayList<>()
-        : MovementSystem.getValidMoveTiles(gameState, unit);
+                ? new ArrayList<>()
+                : MovementSystem.getValidMoveTiles(gameState, unit);
 
         List<Tile> attacks = unit.hasAttacked()
-        ? new ArrayList<>()
-        : MovementSystem.getAttackableTiles(gameState, unit);
+                ? new ArrayList<>()
+                : MovementSystem.getAllAttackableTiles(gameState, unit);
 
         for (Tile t : moves)
             BasicCommands.drawTile(out, t, MOVE);

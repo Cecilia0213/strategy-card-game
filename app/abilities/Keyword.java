@@ -9,5 +9,6 @@ package abilities;
 public enum Keyword {
     RUSH,
     FLYING,
-    PROVOKE
+    PROVOKE,
+    ZEAL
 }

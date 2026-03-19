@@ -11,7 +11,7 @@ import structures.basic.Tile;
 /**
  * This class can be used to hold information about the on-going game.
  * Its created with the GameActor.
- * 
+ *
  * @author Dr. Richard McCreadie
  *
  */
@@ -263,6 +263,23 @@ public class GameState {
         this.gameOver = gameOver;
     }
 
+    /**
+     * Sprint 4B: trigger Zeal-style buffs when a player's avatar takes damage.
+     * Current assumption: Silverguard Knight gets +2 attack permanently each time
+     * its own avatar takes damage.
+     */
+    public void handleAvatarDamaged(int damagedOwnerId) {
+        for (int x = 1; x <= 9; x++) {
+            for (int y = 1; y <= 5; y++) {
+                GameUnit unit = unitBoard[x][y];
+                if (unit == null) continue;
+                if (unit.getOwner() != damagedOwnerId) continue;
+                if (!unit.hasKeyword(abilities.Keyword.ZEAL)) continue;
+                unit.setAttack(unit.getAttack() + 2);
+            }
+        }
+    }
+
 
     // Turn switching and core logic (Sprint 2 - Yitong)
 
@@ -334,7 +351,7 @@ public class GameState {
                 if (unit != null) {
                     // If the owner of this unit is the current turn's player, reset its action state.
                     if (unit.getOwner() == currentTurn) {
-                        unit.resetTurnFlags();
+                        unit.startTurnReset();
                     }
                 }
             }
