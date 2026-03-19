@@ -17,6 +17,7 @@ import structures.Pos;
 import structures.basic.Tile;
 import systems.GameEngine;
 import systems.CombatSystem;
+import systems.MovementSystem;
 
 public class TileClicked implements EventProcessor {
 
@@ -281,8 +282,13 @@ public class TileClicked implements EventProcessor {
                                   GameState gameState,
                                   GameUnit unit) {
 
-        List<Tile> moves = computeMoves(gameState, unit);
-        List<Tile> attacks = computeAttacks(gameState, unit);
+        List<Tile> moves = unit.hasMoved()
+        ? new ArrayList<>()
+        : MovementSystem.getValidMoveTiles(gameState, unit);
+
+        List<Tile> attacks = unit.hasAttacked()
+        ? new ArrayList<>()
+        : MovementSystem.getAttackableTiles(gameState, unit);
 
         for (Tile t : moves)
             BasicCommands.drawTile(out, t, MOVE);
@@ -306,68 +312,6 @@ public class TileClicked implements EventProcessor {
             if (t.getTilex()==tile.getTilex() && t.getTiley()==tile.getTiley())
                 return true;
         return false;
-    }
-
-    // =====================================
-    // MOVEMENT
-    // =====================================
-
-    private List<Tile> computeMoves(GameState gameState, GameUnit unit) {
-
-        List<Tile> list = new ArrayList<>();
-
-        int ux = unit.getTileX();
-        int uy = unit.getTileY();
-
-        int[][] dirs = {
-                {1,0},{-1,0},{0,1},{0,-1},
-                {1,1},{1,-1},{-1,1},{-1,-1}
-        };
-
-        for (int[] d: dirs) {
-
-            int nx = ux + d[0];
-            int ny = uy + d[1];
-
-            Tile t = gameState.getTile(nx,ny);
-            if (t==null) continue;
-            if (gameState.getUnitOnTile(nx,ny)!=null) continue;
-
-            list.add(t);
-        }
-
-        return list;
-    }
-
-    // =====================================
-    // ATTACK
-    // =====================================
-
-    private List<Tile> computeAttacks(GameState gameState, GameUnit unit){
-
-        List<Tile> list = new ArrayList<>();
-
-        int ux=unit.getTileX();
-        int uy=unit.getTileY();
-
-        for(int dx=-1;dx<=1;dx++)
-        for(int dy=-1;dy<=1;dy++){
-
-            if(dx==0 && dy==0) continue;
-
-            int nx=ux+dx;
-            int ny=uy+dy;
-
-            Tile t=gameState.getTile(nx,ny);
-            if(t==null) continue;
-
-            GameUnit target=gameState.getUnitOnTile(nx,ny);
-
-            if(target!=null && target.getOwner()!=unit.getOwner())
-                list.add(t);
-        }
-
-        return list;
     }
 
     // =====================================
