@@ -22,6 +22,14 @@ public class GameState {
 
     public boolean something = false;
 
+    // Sprint 4: Instantiate Effect Parser
+    private systems.EffectResolver effectResolver = new systems.EffectResolver();
+
+    public systems.EffectResolver getEffectResolver() {
+        return effectResolver;
+    }
+
+
     // board
     private Tile[][] board = new Tile[10][6];           // Visual tiles
     private GameUnit[][] unitBoard = new GameUnit[10][6]; // Units on tiles

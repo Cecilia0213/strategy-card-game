@@ -43,7 +43,7 @@ public final class EffectResolver {
      * @param out     WebSocket actor for sending commands to the front-end
      * @param state   current game state
      */
-    public void fire(TriggerType event, ActorRef out, GameState state) {
+    public void fire(TriggerType event, ActorRef out, GameState state,GameUnit source) {
         for (TriggeredEffect te : registry) {
             if (te.getTrigger() == event) {
                 te.getEffect().execute(out, state, te.getOwner());

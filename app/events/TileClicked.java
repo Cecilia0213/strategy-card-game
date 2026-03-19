@@ -140,14 +140,21 @@ public class TileClicked implements EventProcessor {
 
         PlayCardAction action = new PlayCardAction(player, handPos, new Pos(x, y));
 
+        systems.CardSystem.playCard(gameState, action);
+
         GameEngine.apply(gameState, action);
 
         GameUnit unit = gameState.getUnitOnTile(x, y);
 
         if (card.getIsCreature() && unit != null) {
 
+            if ("Saberspine Tiger".equals(card.getCardname())) {
+                unit.setHasMoved(false);
+                unit.setHasAttacked(false);
+            }
             Tile tile = gameState.getTile(x, y);
             drawUnitWithStats(out, tile, unit);
+            gameState.getEffectResolver().fire(abilities.TriggerType.ON_SUMMON, out, gameState, unit);
         } else {
             refreshSpellUI(out, gameState, cardName, x, y, targetBefore, swarmEmptyTilesBefore);
         }
