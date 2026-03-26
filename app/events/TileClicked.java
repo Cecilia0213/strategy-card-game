@@ -12,10 +12,9 @@ import actions.PlayCardAction;
 import commands.BasicCommands;
 import structures.GameState;
 import structures.GameUnit;
-import structures.basic.Card;
 import structures.Pos;
+import structures.basic.Card;
 import structures.basic.Tile;
-import systems.GameEngine;
 import systems.CombatSystem;
 import systems.MovementSystem;
 
@@ -73,41 +72,42 @@ public class TileClicked implements EventProcessor {
                 gameState.setSelectedUnit(null);
                 return;
             }
-        }
-        // MOVE
-        if (clickedUnit == null
-                && isMoveHighlighted(gameState, clickedTile)
-                && !selectedUnit.hasMoved()) {
 
-            gameState.setUnitMoving(true);
+            // MOVE
+            if (clickedUnit == null
+                    && isMoveHighlighted(gameState, clickedTile)
+                    && !selectedUnit.hasMoved()) {
 
-            BasicCommands.moveUnitToTile(out,
-                    selectedUnit.getUnit(),
-                    clickedTile);
+                gameState.setUnitMoving(true);
 
-            gameState.moveUnit(selectedUnit, x, y);
-            selectedUnit.setHasMoved(true);
+                BasicCommands.moveUnitToTile(out,
+                        selectedUnit.getUnit(),
+                        clickedTile);
 
-            clearHighlights(out, gameState);
-            gameState.setSelectedUnit(null);
-            return;
-        }
+                gameState.moveUnit(selectedUnit, x, y);
+                selectedUnit.setHasMoved(true);
 
-        // RESELECT FRIENDLY
-        if (clickedUnit != null
-                && clickedUnit.getOwner() == gameState.getCurrentTurn()) {
-
-            clearHighlights(out, gameState);
-            gameState.setSelectedUnit(clickedUnit);
-
-            try {
-                Thread.sleep(60);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                clearHighlights(out, gameState);
+                gameState.setSelectedUnit(null);
+                return;
             }
 
-            highlightActions(out, gameState, clickedUnit);
-            return;
+            // RESELECT FRIENDLY
+            if (clickedUnit != null
+                    && clickedUnit.getOwner() == gameState.getCurrentTurn()) {
+
+                clearHighlights(out, gameState);
+                gameState.setSelectedUnit(clickedUnit);
+
+                try {
+                    Thread.sleep(60);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                highlightActions(out, gameState, clickedUnit);
+                return;
+            }
         }
 
         // =====================================
@@ -150,7 +150,6 @@ public class TileClicked implements EventProcessor {
         GameUnit unit = gameState.getUnitOnTile(x, y);
 
         if (card.getIsCreature() && unit != null) {
-
             Tile tile = gameState.getTile(x, y);
             drawUnitWithStats(out, tile, unit);
             gameState.getEffectResolver().fire(abilities.TriggerType.ON_SUMMON, out, gameState, unit);
@@ -207,9 +206,14 @@ public class TileClicked implements EventProcessor {
         }
 
         if ("Wraithling Swarm".equals(cardName)) {
-            drawNewAdjacentSummons(out, gameState, playerAvatar(gameState, gameState.getCurrentTurn()),
+            drawNewAdjacentSummons(
+                    out,
+                    gameState,
+                    playerAvatar(gameState, gameState.getCurrentTurn()),
                     swarmEmptyTilesBefore);
+            return;
         }
+
         if ("Horn of the Forsaken".equals(cardName)) {
             return;
         }
@@ -250,6 +254,7 @@ public class TileClicked implements EventProcessor {
             GameState gameState,
             GameUnit avatar,
             Set<String> emptyTilesBefore) {
+
         if (avatar == null)
             return;
 
@@ -346,16 +351,18 @@ public class TileClicked implements EventProcessor {
     }
 
     private boolean isMoveHighlighted(GameState gameState, Tile tile) {
-        for (Tile t : gameState.getHighlightedTiles())
+        for (Tile t : gameState.getHighlightedTiles()) {
             if (t.getTilex() == tile.getTilex() && t.getTiley() == tile.getTiley())
                 return true;
+        }
         return false;
     }
 
     private boolean isAttackHighlighted(GameState gameState, Tile tile) {
-        for (Tile t : gameState.getAttackHighlightedTiles())
+        for (Tile t : gameState.getAttackHighlightedTiles()) {
             if (t.getTilex() == tile.getTilex() && t.getTiley() == tile.getTiley())
                 return true;
+        }
         return false;
     }
 
@@ -369,26 +376,27 @@ public class TileClicked implements EventProcessor {
     }
 
     private void refreshHand(ActorRef out, GameState state) {
-
         List<Card> hand = state.getCurrentTurn() == 1
                 ? state.getPlayer1Hand()
                 : state.getPlayer2Hand();
 
-        for (int i = 1; i <= 6; i++)
+        for (int i = 1; i <= 6; i++) {
             BasicCommands.deleteCard(out, i);
+        }
 
-        for (int i = 0; i < hand.size() && i < 6; i++)
+        for (int i = 0; i < hand.size() && i < 6; i++) {
             BasicCommands.drawCard(out, hand.get(i), i + 1, 0);
+        }
     }
 
     private void clearHighlights(ActorRef out, GameState state) {
-
         List<Tile> all = new ArrayList<>();
         all.addAll(state.getHighlightedTiles());
         all.addAll(state.getAttackHighlightedTiles());
 
-        for (Tile t : all)
+        for (Tile t : all) {
             BasicCommands.drawTile(out, t, NORMAL);
+        }
 
         state.getHighlightedTiles().clear();
         state.getAttackHighlightedTiles().clear();
