@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import utils.BasicObjectBuilders;
+import utils.StaticConfFiles;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -15,6 +17,7 @@ import structures.GameUnit;
 import structures.Pos;
 import structures.basic.Card;
 import structures.basic.Tile;
+import structures.basic.EffectAnimation;
 import systems.CombatSystem;
 import systems.MovementSystem;
 
@@ -175,7 +178,23 @@ public class TileClicked implements EventProcessor {
 
         GameUnit targetAfter = gameState.getUnitOnTile(x, y);
 
+        if ("Beamshock".equals(cardName) || "Beam Shock".equals(cardName)) {
+            if (targetAfter != null) {
+                EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_buff);
+                Tile targetTile = gameState.getTile(x, y);
+                int duration = BasicCommands.playEffectAnimation(out, effect, targetTile);
+                try { Thread.sleep(duration); } catch (InterruptedException e) { e.printStackTrace(); }
+                BasicCommands.addPlayer1Notification(out, "Target stunned", 2);
+            }
+            return;
+        }
+
         if ("True Strike".equals(cardName) || "Truestrike".equals(cardName)) {
+            Tile targetTile = gameState.getTile(x, y);
+            EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_projectiles);
+            int duration = BasicCommands.playEffectAnimation(out, effect, targetTile);
+            try { Thread.sleep(duration); } catch (InterruptedException e) { e.printStackTrace(); }
+
             if (targetAfter == null) {
                 if (targetBefore != null) {
                     BasicCommands.deleteUnit(out, targetBefore.getUnit());
@@ -187,6 +206,11 @@ public class TileClicked implements EventProcessor {
         }
 
         if ("Sundrop Elixir".equals(cardName)) {
+            Tile targetTile = gameState.getTile(x, y);
+            EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_buff);
+            int duration = BasicCommands.playEffectAnimation(out, effect, targetTile);
+            try { Thread.sleep(duration); } catch (InterruptedException e) { e.printStackTrace(); }
+
             if (targetAfter != null) {
                 BasicCommands.setUnitHealth(out, targetAfter.getUnit(), Math.max(0, targetAfter.getHealth()));
             }
@@ -194,6 +218,11 @@ public class TileClicked implements EventProcessor {
         }
 
         if ("Dark Terminus".equals(cardName)) {
+            Tile targetTile = gameState.getTile(x, y);
+            EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_martyrdom);
+            int duration = BasicCommands.playEffectAnimation(out, effect, targetTile);
+            try { Thread.sleep(duration); } catch (InterruptedException e) { e.printStackTrace(); }
+
             if (targetBefore != null) {
                 BasicCommands.deleteUnit(out, targetBefore.getUnit());
             }
@@ -205,13 +234,22 @@ public class TileClicked implements EventProcessor {
         }
 
         if ("Wraithling Swarm".equals(cardName)) {
-            drawNewAdjacentSummons(
-                    out,
-                    gameState,
-                    playerAvatar(gameState, gameState.getCurrentTurn()),
-                    swarmEmptyTilesBefore);
-            return;
-        }
+            GameUnit avatar = playerAvatar(gameState, gameState.getCurrentTurn());
+            if (avatar != null) {
+                Tile avatarTile = gameState.getTile(avatar.getTileX(), avatar.getTileY());
+                EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_summon);
+                int duration = BasicCommands.playEffectAnimation(out, effect, avatarTile);
+                try { Thread.sleep(duration); } catch (InterruptedException e) { e.printStackTrace(); }
+            }
+
+    drawNewAdjacentSummons(
+            out,
+            gameState,
+            playerAvatar(gameState, gameState.getCurrentTurn()),
+            swarmEmptyTilesBefore);
+    return;
+}
+
 
         if ("Horn of the Forsaken".equals(cardName)) {
             return;

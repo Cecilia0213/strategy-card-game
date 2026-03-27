@@ -12,9 +12,14 @@ import structures.GameState;
 import structures.GameUnit;
 import structures.Pos;
 import structures.basic.Card;
+import structures.basic.EffectAnimation;
 import structures.basic.Tile;
 import systems.CombatSystem;
 import systems.GameEngine;
+import systems.MovementSystem;
+import utils.BasicObjectBuilders;
+import utils.StaticConfFiles;
+
 
 /**
  * Handles end-turn clicks.
@@ -110,15 +115,24 @@ public class EndTurnClicked implements EventProcessor {
 
 			String name = card.getCardname();
 
-			// True Strike / Truestrike
-			if ("True Strike".equals(name) || "Truestrike".equals(name)) {
-				GameUnit target = findLowestHealthEnemyNonAvatar(state, 2);
-				if (target != null) {
-					GameEngine.apply(state, new PlayCardAction(2, i, new Pos(target.getTileX(), target.getTileY())));
-					syncManaUI(out, state);
+				// True Strike / Truestrike
+				if ("True Strike".equals(name) || "Truestrike".equals(name)) {
+					GameUnit target = findLowestHealthEnemyNonAvatar(state, 2);
+					if (target != null) {
+						Tile targetTile = state.getTile(target.getTileX(), target.getTileY());
+						EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_projectiles);
+						int duration = BasicCommands.playEffectAnimation(out, effect, targetTile);
+						try {
+							Thread.sleep(duration);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
 
-					GameUnit after = state.getUnitOnTile(target.getTileX(), target.getTileY());
-					if (after == null) {
+						GameEngine.apply(state, new PlayCardAction(2, i, new Pos(target.getTileX(), target.getTileY())));
+						syncManaUI(out, state);
+
+						GameUnit after = state.getUnitOnTile(target.getTileX(), target.getTileY());
+						if (after == null) {
 						BasicCommands.deleteUnit(out, target.getUnit());
 					} else {
 						BasicCommands.setUnitHealth(out, after.getUnit(), after.getHealth());
@@ -127,36 +141,63 @@ public class EndTurnClicked implements EventProcessor {
 				}
 			}
 
-			// Sundrop Elixir
-			if ("Sundrop Elixir".equals(name)) {
-				GameUnit target = findLowestHealthAllyNonAvatar(state, 2);
-				if (target != null && target.getHealth() < target.getMaxHealth()) {
-					GameEngine.apply(state, new PlayCardAction(2, i, new Pos(target.getTileX(), target.getTileY())));
-					syncManaUI(out, state);
-					BasicCommands.setUnitHealth(out, target.getUnit(), target.getHealth());
-					return;
-				}
+				// Sundrop Elixir
+				if ("Sundrop Elixir".equals(name)) {
+					GameUnit target = findLowestHealthAllyNonAvatar(state, 2);
+					if (target != null && target.getHealth() < target.getMaxHealth()) {
+						Tile targetTile = state.getTile(target.getTileX(), target.getTileY());
+						EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_buff);
+						int duration = BasicCommands.playEffectAnimation(out, effect, targetTile);
+						try {
+							Thread.sleep(duration);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+
+						GameEngine.apply(state, new PlayCardAction(2, i, new Pos(target.getTileX(), target.getTileY())));
+						syncManaUI(out, state);
+						BasicCommands.setUnitHealth(out, target.getUnit(), target.getHealth());
+						return;
+					}
 			}
 
-			// Beamshock
-			if ("Beamshock".equals(name) || "Beam Shock".equals(name)) {
-				GameUnit target = findClosestEnemyNonAvatar(state, 2);
-				if (target != null) {
-					GameEngine.apply(state, new PlayCardAction(2, i, new Pos(target.getTileX(), target.getTileY())));
-					syncManaUI(out, state);
-					return;
+				// Beamshock
+				if ("Beamshock".equals(name) || "Beam Shock".equals(name)) {
+					GameUnit target = findClosestEnemyNonAvatar(state, 2);
+					if (target != null) {
+						Tile targetTile = state.getTile(target.getTileX(), target.getTileY());
+						EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_buff);
+						int duration = BasicCommands.playEffectAnimation(out, effect, targetTile);
+						try {
+							Thread.sleep(duration);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+
+						GameEngine.apply(state, new PlayCardAction(2, i, new Pos(target.getTileX(), target.getTileY())));
+						syncManaUI(out, state);
+						BasicCommands.addPlayer1Notification(out, "AI cast Beamshock", 2);
+						return;
+					}
 				}
-			}
 
 			// Dark Terminus
-			if ("Dark Terminus".equals(name)) {
-				GameUnit target = findHighestAttackEnemyNonAvatar(state, 2);
-				if (target != null) {
-					int tx = target.getTileX();
-					int ty = target.getTileY();
+				if ("Dark Terminus".equals(name)) {
+					GameUnit target = findHighestAttackEnemyNonAvatar(state, 2);
+					if (target != null) {
+						int tx = target.getTileX();
+						int ty = target.getTileY();
+						Tile targetTile = state.getTile(tx, ty);
+						EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_martyrdom);
+						int duration = BasicCommands.playEffectAnimation(out, effect, targetTile);
+						try {
+							Thread.sleep(duration);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
 
-					GameEngine.apply(state, new PlayCardAction(2, i, new Pos(tx, ty)));
-					syncManaUI(out, state);
+						GameEngine.apply(state, new PlayCardAction(2, i, new Pos(tx, ty)));
+						syncManaUI(out, state);
 
 					BasicCommands.deleteUnit(out, target.getUnit());
 
@@ -179,13 +220,22 @@ public class EndTurnClicked implements EventProcessor {
 				}
 			}
 
-			// Wraithling Swarm
-			if ("Wraithling Swarm".equals(name)) {
-				GameUnit avatar = state.getPlayer2Avatar();
-				if (avatar != null) {
-					GameEngine.apply(state, new PlayCardAction(2, i, new Pos(avatar.getTileX(), avatar.getTileY())));
-					syncManaUI(out, state);
-					drawNewAIAdjacentWraithlings(out, state, avatar);
+				// Wraithling Swarm
+				if ("Wraithling Swarm".equals(name)) {
+					GameUnit avatar = state.getPlayer2Avatar();
+					if (avatar != null) {
+						Tile avatarTile = state.getTile(avatar.getTileX(), avatar.getTileY());
+						EffectAnimation effect = BasicObjectBuilders.loadEffect(StaticConfFiles.f1_summon);
+						int duration = BasicCommands.playEffectAnimation(out, effect, avatarTile);
+						try {
+							Thread.sleep(duration);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+
+						GameEngine.apply(state, new PlayCardAction(2, i, new Pos(avatar.getTileX(), avatar.getTileY())));
+						syncManaUI(out, state);
+						drawNewAIAdjacentWraithlings(out, state, avatar);
 					return;
 				}
 			}
@@ -225,8 +275,6 @@ public class EndTurnClicked implements EventProcessor {
 				continue;
 			if (unit.isDead())
 				continue;
-			if (unit.isAvatar())
-				continue;
 			if (state.isGameOver())
 				return;
 
@@ -248,7 +296,7 @@ public class EndTurnClicked implements EventProcessor {
 
 			// Move toward enemy avatar
 			if (!unit.hasMoved()) {
-				Tile moveTile = findBestMoveTowardAvatar(state, unit, state.getPlayer1Avatar());
+				Tile moveTile = findBestAIMoveTile(state, unit);
 				if (moveTile != null) {
 					BasicCommands.moveUnitToTile(out, unit.getUnit(), moveTile);
 					state.moveUnit(unit, moveTile.getTilex(), moveTile.getTiley());
@@ -260,60 +308,66 @@ public class EndTurnClicked implements EventProcessor {
 					}
 				}
 			}
-
-			// After moving, attack again if now adjacent
-			if (!unit.hasAttacked()) {
-				GameUnit adjacentEnemy = findAdjacentEnemy(state, unit);
-				if (adjacentEnemy != null) {
-					CombatSystem.executeAttack(out, state, unit, adjacentEnemy);
-					unit.setHasAttacked(true);
-					try {
-						Thread.sleep(300);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
 		}
 	}
 
 	private Tile findFirstValidSummonTile(GameState state, int owner, Card card) {
 		String name = card.getCardname();
 
-		// Flying / anywhere summon cards
 		if ("Young Flamewing".equals(name) || "Ironcliff Guardian".equals(name)) {
-			for (int x = 1; x <= 9; x++) {
-				for (int y = 1; y <= 5; y++) {
-					Tile tile = state.getTile(x, y);
-					if (tile == null)
-						continue;
-					if (state.getUnitOnTile(x, y) != null)
-						continue;
+			GameUnit avatar = (owner == 2) ? state.getPlayer2Avatar() : state.getPlayer1Avatar();
+			if (avatar != null) {
+				Tile bestTile = null;
+				int bestDistance = Integer.MAX_VALUE;
+
+				for (int x = 1; x <= 9; x++) {
+					for (int y = 1; y <= 5; y++) {
+						Tile tile = state.getTile(x, y);
+						if (tile == null) continue;
+						if (state.getUnitOnTile(x, y) != null) continue;
+
+						int dist = Math.abs(x - avatar.getTileX()) + Math.abs(y - avatar.getTileY());
+						if (dist < bestDistance) {
+							bestDistance = dist;
+							bestTile = tile;
+						}
+					}
+				}
+				return bestTile;
+			}
+			return null;
+		}
+
+		GameUnit avatar = (owner == 2) ? state.getPlayer2Avatar() : state.getPlayer1Avatar();
+		if (avatar != null) {
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dy = -1; dy <= 1; dy++) {
+					if (dx == 0 && dy == 0) continue;
+					int nx = avatar.getTileX() + dx;
+					int ny = avatar.getTileY() + dy;
+					Tile tile = state.getTile(nx, ny);
+					if (tile == null) continue;
+					if (state.getUnitOnTile(nx, ny) != null) continue;
 					return tile;
 				}
 			}
-			return null;
 		}
 
 		for (int x = 1; x <= 9; x++) {
 			for (int y = 1; y <= 5; y++) {
 				GameUnit unit = state.getUnitOnTile(x, y);
-				if (unit == null || unit.getOwner() != owner)
-					continue;
+				if (unit == null || unit.getOwner() != owner) continue;
 
 				for (int dx = -1; dx <= 1; dx++) {
 					for (int dy = -1; dy <= 1; dy++) {
-						if (dx == 0 && dy == 0)
-							continue;
+						if (dx == 0 && dy == 0) continue;
 
 						int nx = x + dx;
 						int ny = y + dy;
 
 						Tile tile = state.getTile(nx, ny);
-						if (tile == null)
-							continue;
-						if (state.getUnitOnTile(nx, ny) != null)
-							continue;
+						if (tile == null) continue;
+						if (state.getUnitOnTile(nx, ny) != null) continue;
 						return tile;
 					}
 				}
@@ -336,6 +390,9 @@ public class EndTurnClicked implements EventProcessor {
 	}
 
 	private GameUnit findAdjacentEnemy(GameState state, GameUnit unit) {
+		List<GameUnit> adjacentEnemies = new ArrayList<>();
+		List<GameUnit> adjacentProvokes = new ArrayList<>();
+
 		for (int dx = -1; dx <= 1; dx++) {
 			for (int dy = -1; dy <= 1; dy++) {
 				if (dx == 0 && dy == 0)
@@ -345,44 +402,114 @@ public class EndTurnClicked implements EventProcessor {
 				int ny = unit.getTileY() + dy;
 
 				GameUnit target = state.getUnitOnTile(nx, ny);
-				if (target != null && target.getOwner() != unit.getOwner()) {
-					return target;
+				if (target == null)
+					continue;
+				if (target.getOwner() == unit.getOwner())
+					continue;
+
+				adjacentEnemies.add(target);
+
+				if (target.hasKeyword(abilities.Keyword.PROVOKE)) {
+					adjacentProvokes.add(target);
 				}
 			}
 		}
+
+		if (!adjacentProvokes.isEmpty()) {
+			return adjacentProvokes.get(0);
+		}
+
+		if (!adjacentEnemies.isEmpty()) {
+			return adjacentEnemies.get(0);
+		}
+
 		return null;
 	}
 
-	private Tile findBestMoveTowardAvatar(GameState state, GameUnit unit, GameUnit targetAvatar) {
-		if (unit == null || targetAvatar == null)
-			return null;
-
+	private Tile findBestAIMoveTile(GameState state, GameUnit unit) {
+		List<Tile> candidates = MovementSystem.getValidMoveTiles(state, unit);
 		Tile bestTile = null;
-		int bestDistance = Integer.MAX_VALUE;
+		int bestScore = Integer.MIN_VALUE;
 
-		int[][] dirs = {
-				{ 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
-				{ 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 }
-		};
-
-		for (int[] d : dirs) {
-			int nx = unit.getTileX() + d[0];
-			int ny = unit.getTileY() + d[1];
-
-			Tile tile = state.getTile(nx, ny);
-			if (tile == null)
-				continue;
-			if (state.getUnitOnTile(nx, ny) != null)
-				continue;
-
-			int dist = Math.abs(nx - targetAvatar.getTileX()) + Math.abs(ny - targetAvatar.getTileY());
-			if (dist < bestDistance) {
-				bestDistance = dist;
+		for (Tile tile : candidates) {
+			int score = scoreMoveTile(state, unit, tile);
+			if (score > bestScore) {
+				bestScore = score;
 				bestTile = tile;
 			}
 		}
 
 		return bestTile;
+	}
+
+
+	private int scoreMoveTile(GameState state, GameUnit unit, Tile tile) {
+		int score = 0;
+		int x = tile.getTilex();
+		int y = tile.getTiley();
+
+		if (canAttackFrom(state, unit, x, y)) {
+			score += 100;
+
+		}
+
+		// Prefer getting closer to enemy avatar
+		GameUnit enemyAvatar = state.getPlayer1Avatar();
+		if (enemyAvatar != null) {
+			int distToAvatar = Math.abs(x - enemyAvatar.getTileX()) + Math.abs(y - enemyAvatar.getTileY());
+			score += Math.max(0, 20 - distToAvatar);
+		}
+
+		// Prefer getting closer to weak enemies
+		GameUnit weakEnemy = findLowestHealthEnemyNonAvatar(state, 2);
+		if (weakEnemy != null) {
+			int distToWeakEnemy = Math.abs(x - weakEnemy.getTileX()) + Math.abs(y - weakEnemy.getTileY());
+			score += Math.max(0, 10 - distToWeakEnemy);
+		}
+
+		int nearbyEnemies = countAdjacentEnemiesAt(state, unit, x, y);
+		score -= nearbyEnemies * 8;
+
+		// AI avatar should be more cautious
+		if (unit.isAvatar()) {
+			score -= nearbyEnemies * 12;
+		}
+		return score;
+	}
+
+	private boolean canAttackFrom(GameState state, GameUnit unit, int x, int y) {
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				if (dx == 0 && dy == 0) continue;
+
+				int nx = x + dx;
+				int ny = y + dy;
+
+				GameUnit target = state.getUnitOnTile(nx, ny);
+				if (target != null && target.getOwner() != unit.getOwner()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private int countAdjacentEnemiesAt(GameState state, GameUnit unit, int x, int y) {
+		int count = 0;
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				if (dx == 0 && dy == 0) continue;
+
+				int nx = x + dx;
+				int ny = y + dy;
+
+				GameUnit target = state.getUnitOnTile(nx, ny);
+				if (target != null && target.getOwner() != unit.getOwner()) {
+					count++;
+				}
+			}
+		}
+		return count;
 	}
 
 	private GameUnit findLowestHealthEnemyNonAvatar(GameState state, int aiOwner) {
@@ -500,13 +627,6 @@ public class EndTurnClicked implements EventProcessor {
 	private void drawUnitWithStats(ActorRef out, Tile tile, GameUnit unit) {
 		if (unit == null || tile == null)
 			return;
-
-		BasicCommands.deleteUnit(out, unit.getUnit());
-		try {
-			Thread.sleep(30);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 
 		BasicCommands.drawUnit(out, unit.getUnit(), tile);
 		try {

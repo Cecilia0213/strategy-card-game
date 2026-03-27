@@ -29,7 +29,7 @@ public final class CombatSystem {
         int defenderHealthBefore = defender.getHealth();
         int attackerHealthBefore = attacker.getHealth();
 
-        // Attacker attack animation
+        // attacker animation
         int atkDuration = BasicCommands.playUnitAnimation(out, attacker.getUnit(), UnitAnimationType.attack);
         BasicCommands.playUnitAnimation(out, defender.getUnit(), UnitAnimationType.hit);
         try {
@@ -38,33 +38,24 @@ public final class CombatSystem {
             e.printStackTrace();
         }
 
-        // Deal damage to defender
+        // defender animation
+        int counterDuration = BasicCommands.playUnitAnimation(out, defender.getUnit(), UnitAnimationType.attack);
+        BasicCommands.playUnitAnimation(out, attacker.getUnit(), UnitAnimationType.hit);
+        try {
+            Thread.sleep(counterDuration + 100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // simultaneous damage
         int damageToDefender = attacker.getAttack();
         defender.takeDamage(damageToDefender);
         updateHealthUI(out, state, defender, defenderHealthBefore);
-
-        // Trigger "on damage dealt" for attacker
         state.getEffectResolver().fire(TriggerType.ON_DAMAGE_DEALT, out, state, attacker);
 
-        boolean defenderDead = defender.isDead();
-
-        // Counter-attack only if defender survived and is adjacent
-        if (!defenderDead && areAdjacent(attacker, defender)) {
-            int counterDuration = BasicCommands.playUnitAnimation(out, defender.getUnit(), UnitAnimationType.attack);
-            BasicCommands.playUnitAnimation(out, attacker.getUnit(), UnitAnimationType.hit);
-            try {
-                Thread.sleep(counterDuration + 100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            int damageToAttacker = defender.getAttack();
-            attacker.takeDamage(damageToAttacker);
-            updateHealthUI(out, state, attacker, attackerHealthBefore);
-
-            // Trigger "on damage dealt" for defender (counter-attack damage)
-            state.getEffectResolver().fire(TriggerType.ON_DAMAGE_DEALT, out, state, defender);
-        }
+        int damageToAttacker = defender.getAttack();
+        attacker.takeDamage(damageToAttacker);
+        updateHealthUI(out, state, attacker, attackerHealthBefore);
 
         // Return both to idle if they still exist visually
         BasicCommands.playUnitAnimation(out, attacker.getUnit(), UnitAnimationType.idle);
