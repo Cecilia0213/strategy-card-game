@@ -1,12 +1,23 @@
 # Strategy Card Battle Game
 
-A turn-based strategy card battle game developed using Java and Play Framework as part of a team software engineering project at the University of Glasgow.
+A turn-based strategy card battle game developed using Java and Play Framework through Agile Scrum development practices in a six-member software engineering team.
 
 ## Overview
 
 This project implements a strategic card battle game where players summon units, manage mana, move across the board and engage in combat to defeat opponents.
 
 The project was developed using Agile Scrum methodology across multiple sprints with collaborative Git-based development.
+
+## Key Skills Demonstrated
+
+- Object-Oriented Programming (Java)
+- Agile Scrum Development
+- Team Software Engineering
+- Version Control with Git
+- Feature Development and Integration
+- Bug Fixing and Testing
+- UI Interaction Development
+- Collaborative Development Workflow
 
 ## Features
 
